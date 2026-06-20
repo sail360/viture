@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.Android;
 using UnityEngine.Networking;
 using Viture.XR;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 public class SpeechManager : MonoBehaviour
 {
@@ -13,7 +15,20 @@ public class SpeechManager : MonoBehaviour
     private bool isListening = false;
 
     private const string LLM_URL = "https://avis.nrp-nautilus.io/ask-llm/";
-    
+    private const string NAUTILUS_CHAT_URL = "https://ellm.nrp-nautilus.io/v1/chat/completions";
+
+    private string nautilusApiToken = "";
+    private string nautilusModel = "qwen3-small";
+    private bool enableThinking = false;
+
+    [System.Serializable]
+    public class NautilusConfig
+    {
+        public string apiToken;
+        public string model = "qwen3-small";
+        public bool enableThinking = false;
+    }
+
     [System.Serializable]
     public class LLMRequest
     {
@@ -43,8 +58,63 @@ public class SpeechManager : MonoBehaviour
         public string error;
     }
 
+    void LoadNautilusConfig()
+    {
+        string path = System.IO.Path.Combine(
+            Application.streamingAssetsPath,
+            "nautilus_config.json"
+        );
+
+    #if UNITY_ANDROID && !UNITY_EDITOR
+        // On Android, StreamingAssets are inside the APK, so read through UnityWebRequest.
+        UnityWebRequest request = UnityWebRequest.Get(path);
+        var op = request.SendWebRequest();
+
+        while (!op.isDone)
+        {
+            // Blocking is okay here for tiny startup config.
+        }
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError("Failed to load Nautilus config: " + request.error);
+            return;
+        }
+
+        string json = request.downloadHandler.text;
+    #else
+        if (!System.IO.File.Exists(path))
+        {
+            Debug.LogError("Missing Nautilus config file at: " + path);
+            return;
+        }
+
+        string json = System.IO.File.ReadAllText(path);
+    #endif
+
+        NautilusConfig config = JsonUtility.FromJson<NautilusConfig>(json);
+
+        if (config == null || string.IsNullOrEmpty(config.apiToken))
+        {
+            Debug.LogError("Nautilus config is missing apiToken.");
+            return;
+        }
+
+        nautilusApiToken = config.apiToken;
+
+        if (!string.IsNullOrEmpty(config.model))
+        {
+            nautilusModel = config.model;
+        }
+
+        enableThinking = config.enableThinking;
+
+        Debug.Log("Loaded Nautilus config. model=" + nautilusModel + ", enableThinking=" + enableThinking);
+    }
+
     void Start()
     {
+        LoadNautilusConfig();
         qa = FindObjectOfType<Viture.XR.Samples.StarterAssets.VitureQuickActions>();
 #if UNITY_ANDROID && !UNITY_EDITOR
         InitTTS();
@@ -171,8 +241,51 @@ public class SpeechManager : MonoBehaviour
         StartCoroutine(AskLLM(text));
     }
 
+    JObject BuildUserMessage(string userText, string base64Image)
+    {
+        if (string.IsNullOrEmpty(base64Image))
+        {
+            return new JObject
+            {
+                ["role"] = "user",
+                ["content"] = userText
+            };
+        }
+
+        return new JObject
+        {
+            ["role"] = "user",
+            ["content"] = new JArray
+            {
+                new JObject
+                {
+                    ["type"] = "text",
+                    ["text"] = userText
+                },
+                new JObject
+                {
+                    ["type"] = "image_url",
+                    ["image_url"] = new JObject
+                    {
+                        ["url"] = "data:image/jpeg;base64," + base64Image
+                    }
+                }
+            }
+        };
+    }
+
     IEnumerator AskLLM(string userText)
     {
+
+        if (string.IsNullOrEmpty(nautilusApiToken))
+        {
+            Debug.LogError("Nautilus API token is missing. Check Assets/StreamingAssets/nautilus_config.json");
+            if (textReceiver != null)
+                textReceiver.SetResultText("Response: Missing Nautilus API token.");
+            Speak("Sorry, my API token is missing.");
+            yield break;
+        }
+        
         Texture2D frame = null;
 
         // capture one frame
@@ -240,22 +353,40 @@ public class SpeechManager : MonoBehaviour
             Destroy(frame);
         }
 
-        LLMRequest payload = new LLMRequest
+        // LLMRequest payload = new LLMRequest
+        // {
+        //     prompt = userText,
+        //     image = base64Image,
+        //     max_tool_steps = defaultMaxToolSteps,
+        //     use_context = defaultUseContext,
+        //     reset = defaultReset,
+        //     mode = selectedMode
+        // };
+
+        // string json = JsonUtility.ToJson(payload);
+        // byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+        JObject payload = new JObject
         {
-            prompt = userText,
-            image = base64Image,
-            max_tool_steps = defaultMaxToolSteps,
-            use_context = defaultUseContext,
-            reset = defaultReset,
-            mode = selectedMode
+            ["model"] = nautilusModel,
+            ["chat_template_kwargs"] = new JObject
+            {
+                ["enable_thinking"] = enableThinking
+            },
+            ["messages"] = new JArray
+            {
+                BuildUserMessage(userText, base64Image)
+            }
         };
 
-        string json = JsonUtility.ToJson(payload);
+        string json = payload.ToString(Formatting.None);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+
 
         Debug.Log($"SpeechManager: sending LLM request. imagePresent={(base64Image != null)}, imageLength={(base64Image != null ? base64Image.Length : 0)}, jsonLength={bodyRaw.Length}");
 
-        UnityWebRequest request = new UnityWebRequest(LLM_URL, "POST");
+        // UnityWebRequest request = new UnityWebRequest(LLM_URL, "POST");
+        UnityWebRequest request = new UnityWebRequest(NAUTILUS_CHAT_URL, "POST");
+        request.SetRequestHeader("Authorization", "Bearer " + nautilusApiToken);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
@@ -276,16 +407,45 @@ public class SpeechManager : MonoBehaviour
         string raw = request.downloadHandler.text;
         Debug.Log("LLM raw response: " + raw);
         
-        LLMResponse data = JsonUtility.FromJson<LLMResponse>(raw);
+        // LLMResponse data = JsonUtility.FromJson<LLMResponse>(raw);
 
-        if (!string.IsNullOrEmpty(data.answer))
-            if (textReceiver != null)
-                textReceiver.SetResultText("Response: " + data.answer);
-                if (qa != null) qa.SetLookingUp(true);
-            else
-                Debug.LogWarning("TextReceiver not assigned in Inspector");
+        // if (!string.IsNullOrEmpty(data.answer))
+        //     if (textReceiver != null)
+        //         textReceiver.SetResultText("Response: " + data.answer);
+        //         if (qa != null) qa.SetLookingUp(true);
+        //     else
+        //         Debug.LogWarning("TextReceiver not assigned in Inspector");
                 
-            Speak(data.answer);
+        //     Speak(data.answer);
+
+        string answer = "";
+
+        try
+        {
+            JObject data = JObject.Parse(raw);
+            answer = data["choices"]?[0]?["message"]?["content"]?.ToString();
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Failed to parse Nautilus response: " + e.Message);
+        }
+
+        if (string.IsNullOrEmpty(answer))
+        {
+            answer = "Sorry, I could not understand the model response.";
+        }
+
+        if (textReceiver != null)
+        {
+            textReceiver.SetResultText("Response: " + answer);
+        }
+
+        if (qa != null)
+        {
+            qa.SetLookingUp(true);
+        }
+
+        Speak(answer);
     }
     
     void Speak(string text)
