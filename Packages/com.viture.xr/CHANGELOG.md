@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-05-25
+
+### Compatibility Notice
+
+- `VitureXR.HeadTracking.SetWorldOrigin()` and `SetWorldOrigin(Vector3, Quaternion)` require VITURE Neckband ROM 0.3.3 or later. On earlier ROMs these calls have no effect (a warning is logged to logcat) and do not interrupt the app. `Reset()` works on all ROM versions — use it as a fallback if your app must support ROMs older than 0.3.3.
+- The RGB camera on VITURE Neckband ROM 0.3.3 or later requires this SDK version (0.8.0) or higher. Apps built with earlier SDK versions cannot open the RGB camera on ROM 0.3.3+; rebuild with 0.8.0 or later to restore RGB camera support.
+
+### Changed
+
+- **Head Tracking API redesign** - Replaced `VitureXR.HeadTracking.ResetOrigin()` with three clearer methods:
+  - `Reset()` — Reinitializes the tracking algorithm (~1 second stall). Use when tracking has drifted significantly. Works on all ROM versions.
+  - `SetWorldOrigin(Vector3 position, Quaternion rotation)` — Sets the world origin to a specific pose. Instantaneous, no tracking interruption. 6DoF only. Requires ROM 0.3.3+ (see Compatibility Notice).
+  - `SetWorldOrigin()` — Sets the world origin to the current head pose. Instantaneous, no tracking interruption. Requires ROM 0.3.3+ (see Compatibility Notice).
+- **Hand Tracking aiming** - Improved aim responsiveness and smoothed the aim ray when flipping the palm, removing jitter while keeping aiming stable.
+- **RGB Camera Compatibility** - Updated RGB camera handling for compatibility with VITURE Neckband ROM 0.3.3 and later (see Compatibility Notice).
+
+### Fixed
+
+- **Capture Pipeline** - Fixed audio and video being out of sync in first-person (POV) recordings.
+- **Frame freezing under heavy load** - Fixed a bug where the frame could get stuck when the scene load was high. The frame will no longer freeze.
+
 ## [0.7.0] - 2026-03-11
 
 ### Added

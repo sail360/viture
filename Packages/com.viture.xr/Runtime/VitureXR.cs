@@ -184,15 +184,48 @@ namespace Viture.XR
             }
 
             /// <summary>
-            /// Resets the SLAM origin to the current head position and orientation.
-            /// This recalibrates the tracking reference and may take a few seconds.
+            /// Resets the head tracking algorithm. This reinitializes the tracking system
+            /// and may cause a brief stall (~1 second).
+            /// Use this when tracking has drifted significantly and needs full recalibration.
             /// </summary>
-            public static void ResetOrigin()
+            public static void Reset()
             {
 #if UNITY_ANDROID && !UNITY_EDITOR
-                VitureNativeApi.HeadTracking.ResetOrigin();
+                VitureNativeApi.HeadTracking.Reset();
 #else
-                Debug.LogWarning("VitureXR.HeadTracking.ResetOrigin() is only available on VITURE Neckband");
+                Debug.LogWarning("VitureXR.HeadTracking.Reset() is only available on VITURE Neckband");
+#endif
+            }
+
+            /// <summary>
+            /// Sets the world origin to the specified position and orientation.
+            /// Only the yaw component of the rotation is used (pitch and roll are discarded).
+            /// This is an instantaneous operation with no tracking interruption.
+            /// </summary>
+            /// <param name="position">The world position to use as the new origin.</param>
+            /// <param name="rotation">The world rotation to use as the new origin (only yaw is applied).</param>
+            public static void SetWorldOrigin(Vector3 position, Quaternion rotation)
+            {
+#if UNITY_ANDROID && !UNITY_EDITOR
+                VitureNativeApi.HeadTracking.SetWorldOrigin(
+                    position.x, position.y, position.z,
+                    rotation.x, rotation.y, rotation.z, rotation.w);
+#else
+                Debug.LogWarning("VitureXR.HeadTracking.SetWorldOrigin(Vector3, Quaternion) is only available on VITURE Neckband");
+#endif
+            }
+
+            /// <summary>
+            /// Sets the world origin to the current head pose.
+            /// This makes the current position and yaw orientation the new zero point.
+            /// This is an instantaneous operation with no tracking interruption.
+            /// </summary>
+            public static void SetWorldOrigin()
+            {
+#if UNITY_ANDROID && !UNITY_EDITOR
+                VitureNativeApi.HeadTracking.SetWorldOriginToCurrent();
+#else
+                Debug.LogWarning("VitureXR.HeadTracking.SetWorldOrigin() is only available on VITURE Neckband");
 #endif
             }
         }

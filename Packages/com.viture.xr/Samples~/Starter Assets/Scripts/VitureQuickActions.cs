@@ -794,7 +794,7 @@ namespace Viture.XR.Samples.StarterAssets
                 else if (m_ClickCount == 1 && Time.time - m_LastClickTime < m_DoubleClickTimeWindow)
                 {
                     m_ClickCount = 0;
-                    VitureXR.HeadTracking.ResetOrigin();
+                    VitureXR.HeadTracking.SetWorldOrigin();
                 }
             }
 

@@ -83,7 +83,14 @@ namespace Viture.XR
             private static readonly Vector3 k_HeadToLeftShoulderOffset = new(-0.15f, -0.3f, 0f);
             private static readonly Vector3 k_HeadToRightShoulderOffset = new(0.15f, -0.3f, 0f);
             
+            const float k_PalmFlipSmoothTime = 0.5f;
+
             private static VitureHandAimSensitivity s_CurrentAimSensitivity = VitureHandAimSensitivity.Low;
+
+            private float m_PalmBlendWeightLeft;
+            private float m_PalmBlendWeightRight;
+            private float m_PalmBlendVelocityLeft;
+            private float m_PalmBlendVelocityRight;
 
             internal static void SetAimSensitivity(VitureHandAimSensitivity sensitivity)
             {
@@ -282,10 +289,27 @@ namespace Viture.XR
                 var purePalmRotation = Quaternion.LookRotation(stableForward, stableUp);
                 var comfortOffset = Quaternion.Euler(45f, 0f, 0f);
                 var currentHandDirection = purePalmRotation * comfortOffset * Vector3.forward;
-                var aimDirection =
-                    (VitureXR.HeadTracking.GetHeadTrackingCapability() == VitureHeadTrackingCapability.SixDoF && s_CurrentAimSensitivity == VitureHandAimSensitivity.High)
-                        ? Vector3.Slerp(currentArmDirection, currentHandDirection, 0.65f)
-                        : currentArmDirection;
+                Vector3 aimDirection;
+                if (VitureXR.HeadTracking.GetHeadTrackingCapability() == VitureHeadTrackingCapability.SixDoF
+                    && s_CurrentAimSensitivity == VitureHandAimSensitivity.High)
+                {
+                    var targetWeight = palmFacing == (int)ViturePalmFacing.Up ? 0f : 1f;
+
+                    ref var blendWeight = ref (handedness == Handedness.Left
+                        ? ref m_PalmBlendWeightLeft
+                        : ref m_PalmBlendWeightRight);
+                    ref var blendVelocity = ref (handedness == Handedness.Left
+                        ? ref m_PalmBlendVelocityLeft
+                        : ref m_PalmBlendVelocityRight);
+
+                    blendWeight = Mathf.SmoothDamp(blendWeight, targetWeight, ref blendVelocity, k_PalmFlipSmoothTime);
+
+                    aimDirection = Vector3.Slerp(currentArmDirection, currentHandDirection, 0.39f * blendWeight);
+                }
+                else
+                {
+                    aimDirection = currentArmDirection;
+                }
 
                 // Calculate poke position and rotation
                 var indexTipPosition = m_JointPositions[(int)VitureHandJointID.IndexTip];

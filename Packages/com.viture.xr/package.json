@@ -1,7 +1,7 @@
 {
   "name": "com.viture.xr",
   "displayName": "VITURE XR Plugin",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "unity": "6000.0",
   "description": "Unity XR plugin for VITURE devices.",
   "keywords": [
