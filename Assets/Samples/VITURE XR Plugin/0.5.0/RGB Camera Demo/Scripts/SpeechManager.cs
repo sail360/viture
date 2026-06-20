@@ -198,6 +198,7 @@ public class SpeechManager : MonoBehaviour
 
     public void StartListening()
     {
+        StopSpeaking();
 #if UNITY_ANDROID && !UNITY_EDITOR
         if (speechClass == null)
         {
@@ -231,6 +232,7 @@ public class SpeechManager : MonoBehaviour
 
     public void OnSpeechResult(string text)
     {
+        StopSpeaking();
         isListening = false;
         Debug.Log("Final speech: " + text);
         if (textReceiver != null)
@@ -285,7 +287,7 @@ public class SpeechManager : MonoBehaviour
             Speak("Sorry, my API token is missing.");
             yield break;
         }
-        
+
         Texture2D frame = null;
 
         // capture one frame
@@ -467,6 +469,25 @@ public class SpeechManager : MonoBehaviour
 #else
         Debug.Log("TTS: " + text);
 #endif
+    }
+
+    void StopSpeaking()
+    {
+    #if UNITY_ANDROID && !UNITY_EDITOR
+        if (tts != null)
+        {
+            try
+            {
+                tts.Call<int>("stop");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("TTS stop failed: " + e.Message);
+            }
+        }
+    #else
+        Debug.Log("TTS stop");
+    #endif
     }
 
     public void OnSpeechPartial(string text)
