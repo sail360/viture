@@ -58,6 +58,25 @@ public class SpeechManager : MonoBehaviour
         public string error;
     }
 
+    private JArray conversationHistory = new JArray();
+
+    [SerializeField] private int maxConversationTurns = 10;
+
+    private const string SYSTEM_PROMPT =
+        "You are Sammy, a concise helpful AI assistant running on smart glasses. " +
+        "Answer briefly and naturally. If an image is provided, use it.";
+        
+    void TrimConversationHistory()
+    {
+        // Keep roughly last N user+assistant pairs.
+        int maxMessages = maxConversationTurns * 2;
+
+        while (conversationHistory.Count > maxMessages)
+        {
+            conversationHistory.RemoveAt(0);
+        }
+    }
+
     void LoadNautilusConfig()
     {
         string path = System.IO.Path.Combine(
@@ -367,6 +386,26 @@ public class SpeechManager : MonoBehaviour
 
         // string json = JsonUtility.ToJson(payload);
         // byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+        JObject currentUserMessage = BuildUserMessage(userText, base64Image);
+
+        JArray messages = new JArray
+        {
+            new JObject
+            {
+                ["role"] = "system",
+                ["content"] = SYSTEM_PROMPT
+            }
+        };
+
+        // Add previous conversation
+        foreach (JToken msg in conversationHistory)
+        {
+            messages.Add(msg.DeepClone());
+        }
+
+        // Add current user message
+        messages.Add(currentUserMessage);
+
         JObject payload = new JObject
         {
             ["model"] = nautilusModel,
@@ -374,10 +413,7 @@ public class SpeechManager : MonoBehaviour
             {
                 ["enable_thinking"] = enableThinking
             },
-            ["messages"] = new JArray
-            {
-                BuildUserMessage(userText, base64Image)
-            }
+            ["messages"] = messages
         };
 
         string json = payload.ToString(Formatting.None);
@@ -401,7 +437,9 @@ public class SpeechManager : MonoBehaviour
             Debug.LogError("LLM request failed: " + request.error);
             if (textReceiver != null)
                 textReceiver.SetResultText("Response: " + "LLM request failed with error " + request.error);
-                if (qa != null) qa.SetLookingUp(true);
+            
+            if (qa != null) qa.SetLookingUp(true);
+
             Speak("Sorry, I could not reach Sammy.");
             yield break;
         }
@@ -446,6 +484,20 @@ public class SpeechManager : MonoBehaviour
         {
             qa.SetLookingUp(true);
         }
+
+        conversationHistory.Add(new JObject
+        {
+            ["role"] = "user",
+            ["content"] = userText
+        });
+
+        conversationHistory.Add(new JObject
+        {
+            ["role"] = "assistant",
+            ["content"] = answer
+        });
+
+        TrimConversationHistory();
 
         Speak(answer);
     }
@@ -516,7 +568,7 @@ public class SpeechManager : MonoBehaviour
 
         if (tts != null)
         {
-            tts.Call("stop");
+            tts.Call<int>("stop");
             tts.Call("shutdown");
         }
 #endif
