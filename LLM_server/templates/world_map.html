@@ -1,0 +1,54 @@
+{% load static %}
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Rerun Web Viewer</title>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+      }
+      #app {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script type="module">
+      import { WebViewer } from "https://esm.sh/@rerun-io/web-viewer";
+
+      const rrdUrl = new URL("{% static 'world_map.rrd' %}", window.location.origin).href;
+      const viewer = new WebViewer();
+
+      function jumpToEnd() {
+        const recordingId = viewer.get_active_recording_id();
+        if (!recordingId) return;
+
+        const timeline = viewer.get_active_timeline(recordingId);
+        if (!timeline) return;
+
+        const range = viewer.get_time_range(recordingId, timeline);
+        if (!range) return;
+
+        viewer.set_current_time(recordingId, timeline, range.max);
+        viewer.set_playing(recordingId, false);
+      }
+
+      viewer.on("recording_open", () => {
+        jumpToEnd();
+      });
+
+      await viewer.start(rrdUrl, document.getElementById("app"), {
+        width: "100%",
+        height: "100%",
+      });
+
+      // also try once immediately after start
+      jumpToEnd();
+    </script>
+  </body>
+</html>

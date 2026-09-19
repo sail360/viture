@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      width: 400px;
+      background: white;
+      padding: 28px;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+    h1 { margin: 0 0 20px; }
+    label { display: block; margin-top: 12px; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 6px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 16px;
+      border: none;
+      border-radius: 10px;
+      background: #111827;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .errorlist { color: #b91c1c; padding-left: 18px; }
+    .helptext { font-size: 13px; color: #6b7280; display: block; margin-top: 4px; }
+    .footer { margin-top: 16px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Create account</h1>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Sign up</button>
+    </form>
+
+    <div class="footer">
+      <a href="{% url 'login' %}">Already have an account? Login</a>
+    </div>
+  </div>
+</body>
+</html>

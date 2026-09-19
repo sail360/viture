@@ -4,6 +4,18 @@ This repository is a Unity 6 project configured for VITURE XR development. It in
 
 Documentation: https://www.viture.com/developer/unity-sdk/unity#overview, follow setup there for VITURE XR development via Unity.
 
+This app is supposed to run with viture neckband + viture specs only. Viture headset gets internet via wifi or phone hotspot.
+
+Goal of this project is to show proof of concept of an LLM being utilized with XR environment for conversation.
+
+Running app would look like as shown below on viture headset:
+
+![img](./static_assets/image1.png)
+
+![img](./static_assets/image2.png)
+
+The entire code is mostly the app that's running on viture headset. LLM side is added in LLM_server/
+
 ## Project Details
 
 - Unity editor version: `6000.0.67f1`

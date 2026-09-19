@@ -1,0 +1,35 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local configuration and logs
+.env
+.env.*
+!.env.example
+!.env.sample
+*.log
+
+# Django runtime data and collected static files
+/db.sqlite3
+/db.sqlite3-*
+/media/
+/staticfiles/
+
+# Recordings and localization artifacts
+*.vrs
+*.vrs.json
+/query-global.h5
+/pairs-query-db.txt
+/static/*.h5
+/static/*.rrd
+
+# Operating system metadata
+.DS_Store
+Thumbs.db

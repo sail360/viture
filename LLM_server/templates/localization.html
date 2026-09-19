@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Localize Image</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #1f2937;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      margin-bottom: 24px;
+    }
+
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    input[type="file"] {
+      display: block;
+      margin-top: 12px;
+      margin-bottom: 18px;
+    }
+
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      background: #111827;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .preview {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      margin-top: 16px;
+    }
+
+    .result-box {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: #374151;
+      font-weight: 500;
+    }
+
+    .logout-form {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div><strong>Image Localization</strong></div>
+    <div class="nav-links">
+      <a href="/dashboard/">Dashboard</a>
+      <a href="/localize/">Localize</a>
+      <form class="logout-form" method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1>Upload Query Image</h1>
+      <p>Select one new image to localize against your existing photo collection.</p>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Run Localization</button>
+      </form>
+
+      {% if image_url %}
+        <h2>Uploaded Image</h2>
+        <img class="preview" src="{{ image_url }}" alt="Uploaded query image" />
+      {% endif %}
+
+      {% if result %}
+        <div class="result-box">
+          <h2>Result</h2>
+          <p><strong>Status:</strong> {{ result.status }}</p>
+          <p><strong>Message:</strong> {{ result.message }}</p>
+          <p><strong>Top Match:</strong> {{ result.top_match }}</p>
+          <p><strong>Estimated Pose:</strong> {{ result.estimated_pose }}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

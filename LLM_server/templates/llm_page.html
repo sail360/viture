@@ -1,0 +1,428 @@
+<!-- <!doctype html>
+<html>
+<head>
+  <title>LLM in Django</title>
+</head>
+<body>
+  <div class="panel" style="padding: 20px;">
+
+    {% load static %}
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <img src="{% static 'cyber-slug.gif' %}" alt="Sammy" style="width: 40px; height: 40px;">
+      <h2 style="margin: 0;">Sammy</h2>
+    </div>
+
+    <textarea id="prompt" rows="6"></textarea>
+    <br><br>
+    <button onclick="sendPrompt()">Send</button>
+
+    <h3>Response:</h3>
+    <pre id="output"></pre>
+  </div>
+
+  <script>
+    async function sendPrompt() {
+      const prompt = document.getElementById("prompt").value;
+
+      const res = await fetch("/ask-llm/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ prompt })
+      });
+
+      const data = await res.json();
+      document.getElementById("output").textContent =
+        data.answer || data.error || "No response";
+    }
+  </script>
+</body>
+</html> -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Sammy Chat</title>
+  {% load static %}
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #1f2937;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .chat-shell {
+      width: 100%;
+      max-width: 850px;
+      height: 85vh;
+      background: #ffffff;
+      border: 1px solid #dbe3ee;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f9fbff;
+    }
+
+    .chat-header img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .chat-header-text h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .chat-header-text p {
+      margin: 2px 0 0;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .chat-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: linear-gradient(to bottom, #fcfdff, #f7faff);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .message-row {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+    }
+
+    .message-row.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .message-row.bot {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .message-meta {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .message {
+      padding: 12px 14px;
+      border-radius: 16px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border: 1px solid transparent;
+    }
+
+    .user .message {
+      background: #dbeafe;
+      border-color: #bfdbfe;
+    }
+
+    .bot .message {
+      background: #f3f4f6;
+      border-color: #e5e7eb;
+    }
+
+    .system .message {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      color: #9a3412;
+    }
+
+    .chat-footer {
+      border-top: 1px solid #e5e7eb;
+      padding: 16px;
+      background: #ffffff;
+    }
+
+    .input-wrap {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    textarea {
+      flex: 1;
+      resize: none;
+      min-height: 72px;
+      max-height: 180px;
+      padding: 12px 14px;
+      font-size: 14px;
+      border: 1px solid #cfd8e3;
+      border-radius: 12px;
+      outline: none;
+      background: #fbfdff;
+    }
+
+    textarea:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .send-btn {
+      background: #2563eb;
+      color: white;
+    }
+
+    .send-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .clear-btn {
+      background: #eef2f7;
+      color: #374151;
+    }
+
+    .clear-btn:hover {
+      background: #e5e7eb;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status-bar {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .typing {
+      font-style: italic;
+      color: #2563eb;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .brand {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .nav-links a {
+      margin-left: 16px;
+      text-decoration: none;
+      color: #374151;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="navbar">
+    <div class="brand">Baskin World</div>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/world_map/">World Map</a>
+      <a href="/baskin_world_links">Data Links</a>
+      <a href="/llm">LLM</a>
+      <a href="/upload_vrs/">VRS upload</a>
+    </div>
+  </div>
+  <div class="page">
+
+    <div class="chat-shell">
+      <div class="chat-header">
+        <img src="{% static 'cyber-slug.gif' %}" alt="Sammy">
+        <div class="chat-header-text">
+          <h2>Sammy</h2>
+          <p>Ask a question and view the full conversation log</p>
+        </div>
+      </div>
+
+      <div id="chatLog" class="chat-log">
+        <div class="message-row bot">
+          <div class="message-meta">Sammy • just now</div>
+          <div class="message">Hi! Ask me anything.</div>
+        </div>
+      </div>
+
+      <div class="chat-footer">
+        <div class="input-wrap">
+          <textarea id="prompt" placeholder="Type your message here..."></textarea>
+
+          <div class="button-group">
+            <button id="sendBtn" class="send-btn" onclick="sendPrompt()">Send</button>
+            <button class="clear-btn" onclick="clearChat()">Clear</button>
+          </div>
+        </div>
+
+        <div class="status-bar">
+          <span id="status">Ready</span>
+          <span>Press Enter to send, Shift+Enter for new line</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chatLog = document.getElementById("chatLog");
+    const promptBox = document.getElementById("prompt");
+    const sendBtn = document.getElementById("sendBtn");
+    const statusText = document.getElementById("status");
+
+    function getTimeString() {
+      return new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function scrollToBottom() {
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function addMessage(role, text, label = null) {
+      const row = document.createElement("div");
+      row.className = `message-row ${role}`;
+
+      const meta = document.createElement("div");
+      meta.className = "message-meta";
+
+      let name = "System";
+      if (role === "user") name = "You";
+      if (role === "bot") name = "Sammy";
+      if (label) name = label;
+
+      meta.textContent = `${name} • ${getTimeString()}`;
+
+      const bubble = document.createElement("div");
+      bubble.className = "message";
+      bubble.textContent = text;
+
+      row.appendChild(meta);
+      row.appendChild(bubble);
+      chatLog.appendChild(row);
+
+      scrollToBottom();
+      return row;
+    }
+
+    function setLoading(isLoading) {
+      sendBtn.disabled = isLoading;
+      promptBox.disabled = isLoading;
+      statusText.textContent = isLoading ? "Waiting for Sammy..." : "Ready";
+      statusText.className = isLoading ? "typing" : "";
+    }
+
+    function clearChat() {
+      chatLog.innerHTML = `
+        <div class="message-row bot">
+          <div class="message-meta">Sammy • ${getTimeString()}</div>
+          <div class="message">Chat cleared. Ask me anything.</div>
+        </div>
+      `;
+      statusText.textContent = "Ready";
+      statusText.className = "";
+    }
+
+    async function sendPrompt() {
+      const prompt = promptBox.value.trim();
+      if (!prompt) return;
+
+      addMessage("user", prompt);
+      promptBox.value = "";
+      setLoading(true);
+
+      const typingRow = addMessage("bot", "Thinking...", "Sammy");
+
+      try {
+        const res = await fetch("/ask-llm/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({prompt})
+        });
+
+        const data = await res.json();
+
+        typingRow.remove();
+
+        if (!res.ok) {
+          addMessage("system", data.error || "Request failed.");
+        } else {
+          addMessage("bot", data.answer || "No response");
+        }
+      } catch (err) {
+        typingRow.remove();
+        addMessage("system", "Network error: " + err.message);
+      } finally {
+        setLoading(false);
+        promptBox.focus();
+      }
+    }
+
+    promptBox.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendPrompt();
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,107 @@
+<!-- templates/rerun_embed.html -->
+<!doctype html>
+<html>
+  <head>
+    <title>Interactive Visualizer</title>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+      }
+
+      .wrap {
+        display: flex;
+        height: 100vh;
+        width: 100%;
+      }
+
+      .left {
+        width: 75%;
+        padding: 16px;
+        box-sizing: border-box;
+        background: #f5f5f5;
+      }
+
+      .right {
+        width: 25%;
+        padding: 16px;
+        box-sizing: border-box;
+        background: #ffffff;
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      .panel {
+        height: 100%;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background: white;
+      }
+
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="left">
+        <div class="panel">
+          <iframe src="http://127.0.0.1:9090/?url=rerun%2Bhttp%3A%2F%2F127.0.0.1%3A9876%2Fproxy"></iframe>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel" style="padding: 20px;">
+
+          {% load static %}
+
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="{% static 'cyber-slug.gif' %}" alt="Sammy" style="width: 40px; height: 40px;">
+            <h2 style="margin: 0;">Sammy</h2>
+          </div>
+
+          <textarea id="prompt" rows="6"></textarea>
+          <br><br>
+          <button onclick="sendPrompt()">Send</button>
+
+          <h3>Response:</h3>
+          <pre id="output"></pre>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      async function sendPrompt() {
+        const prompt = document.getElementById("prompt").value;
+
+        const res = await fetch("/ask-llm/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ prompt })
+        });
+
+        const data = await res.json();
+        document.getElementById("output").textContent =
+          data.answer || data.error || "No response";
+      }
+    </script>
+  </body>
+</html>
